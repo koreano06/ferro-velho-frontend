@@ -30,25 +30,25 @@ Sistema completo de gestão para ferro-velho com dashboard interativo, controle 
 ---
 
 ## 📁 Estrutura do projeto
+```
 ferro-velho-frontend/
 ├── src/
 │   ├── components/
-│   │   └── Sidebar.jsx        # Menu lateral de navegação
+│   │   └── Sidebar.jsx
 │   ├── layouts/
-│   │   └── AppLayout.jsx      # Layout base com sidebar
+│   │   └── AppLayout.jsx
 │   ├── pages/
-│   │   ├── Dashboard.jsx      # Painel com cards e gráfico
-│   │   ├── Materiais.jsx      # CRUD de materiais
-│   │   ├── NewSale.jsx        # Registro de vendas + recibo térmico
-│   │   ├── RegistroCompra.jsx # Registro de compras
-│   │   ├── RelatorioMaterial.jsx # Relatório por material
-│   │   └── NotFound.jsx       # Página 404
-│   ├── App.jsx                # Roteamento principal
-│   └── main.jsx               # Ponto de entrada
+│   │   ├── Dashboard.jsx
+│   │   ├── Materiais.jsx
+│   │   ├── NewSale.jsx
+│   │   ├── RegistroCompra.jsx
+│   │   ├── RelatorioMaterial.jsx
+│   │   └── NotFound.jsx
+│   ├── App.jsx
+│   └── main.jsx
 ├── index.html
 └── vite.config.js
-
----
+```
 
 ## 🚀 Como rodar localmente
 
