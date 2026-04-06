@@ -19,31 +19,27 @@ export default function AppLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.10),_transparent_28%),linear-gradient(180deg,_#f8fbff_0%,_#eef4f8_100%)] md:flex">
+    <div className="min-h-screen">
       <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 px-4 backdrop-blur md:px-6">
+      <div className="flex min-w-0 flex-1 flex-col md:pl-64">
+        <header className="sticky top-0 z-20 border-b border-slate-800/70 bg-[linear-gradient(180deg,rgba(15,23,42,0.82),rgba(15,23,42,0.58))] px-4 backdrop-blur-xl md:px-6">
           <div className="flex min-h-16 items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setMobileOpen(true)}
-                className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-600 shadow-sm hover:border-slate-300 hover:text-slate-900 md:hidden"
+                className="surface-panel rounded-xl p-2.5 text-slate-200 hover:text-white md:hidden"
                 aria-label="Abrir menu"
               >
                 <Menu size={18} />
               </button>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                <p className="muted-label">
                   {currentPage.section}
                 </p>
-                <h2 className="text-lg font-semibold text-slate-900">{currentPage.title}</h2>
+                <h2 className="text-[1.12rem] font-semibold tracking-[-0.03em] text-slate-100">{currentPage.title}</h2>
               </div>
-            </div>
-
-            <div className="hidden rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 sm:block">
-              Sistema de Gestao
             </div>
           </div>
         </header>

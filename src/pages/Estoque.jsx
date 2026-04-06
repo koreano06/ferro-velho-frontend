@@ -1,26 +1,45 @@
 import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Boxes, Download, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import Button from "../components/ui/Button";
 import { getEstoque } from "../services/estoqueService";
 import { formatCurrencyBRL, formatWeight } from "../utils/formatters";
+import {
+  getMaterialMargin,
+  getMaterialStatus,
+  getMaterialStatusLabel,
+  normalizeMaterial,
+} from "../utils/materials";
 
-const LOW_STOCK_THRESHOLD = 10;
 const PAGE_SIZE_OPTIONS = [5, 10, 20];
 
-function toNumber(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
+function StockMetric({ label, value, tone = "neutral" }) {
+  const toneClass = {
+    positive: "text-emerald-400",
+    negative: "text-rose-400",
+    info: "text-blue-300",
+    neutral: "text-slate-100",
+  };
 
-function getStatus(quantidadeKg) {
-  return quantidadeKg > LOW_STOCK_THRESHOLD ? "ok" : "baixo";
+  return (
+    <div className="surface-panel rounded-2xl p-4">
+      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className={`mt-3 text-2xl font-bold ${toneClass[tone] ?? toneClass.neutral}`}>{value}</p>
+    </div>
+  );
 }
 
 function downloadCsv(rows) {
-  const header = ["Material", "QuantidadeKg", "PrecoBase", "ValorEstoque", "Situacao"];
-  const content = rows.map((item) => {
-    const valorEstoque = item.quantidadeKg * item.precoBase;
-    const situacao = getStatus(item.quantidadeKg) === "ok" ? "DISPONIVEL" : "ESTOQUE BAIXO";
-    return [item.nome, item.quantidadeKg.toFixed(2), item.precoBase.toFixed(2), valorEstoque.toFixed(2), situacao];
-  });
+  const header = ["Material", "QuantidadeKg", "PrecoCompraKg", "PrecoVendaKg", "EstoqueMinimoKg", "ValorCusto", "ValorVenda", "Situacao"];
+  const content = rows.map((item) => [
+    item.nome,
+    item.quantidadeKg.toFixed(2),
+    item.precoCompraKg.toFixed(2),
+    item.precoVendaKg.toFixed(2),
+    item.estoqueMinimoKg.toFixed(2),
+    item.valorCustoEstoque.toFixed(2),
+    item.valorVendaEstoque.toFixed(2),
+    getMaterialStatusLabel(getMaterialStatus(item)).toUpperCase(),
+  ]);
 
   const csv = [header, ...content]
     .map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
@@ -53,7 +72,7 @@ export default function Estoque() {
       setCarregando(true);
       setErro("");
       const data = await getEstoque();
-      setMateriais(Array.isArray(data) ? data : []);
+      setMateriais(Array.isArray(data) ? data.map(normalizeMaterial) : []);
     } catch (error) {
       setErro(error.message);
       setMateriais([]);
@@ -66,45 +85,33 @@ export default function Estoque() {
     loadEstoque();
   }, []);
 
-  const listaNormalizada = useMemo(
-    () =>
-      materiais.map((m) => ({
-        id: m.id_material,
-        nome: String(m.nome ?? "Sem nome"),
-        quantidadeKg: toNumber(m.quantidade_kg),
-        precoBase: toNumber(m.preco_base),
-      })),
-    [materiais]
-  );
-
   const listaFiltradaOrdenada = useMemo(() => {
     const texto = filtro.trim().toLowerCase();
-    const filtrada = listaNormalizada.filter((m) => {
-      const nomeOk = m.nome.toLowerCase().includes(texto);
-      const statusOk = filtroStatus === "todos" ? true : getStatus(m.quantidadeKg) === filtroStatus;
+    const filtrada = materiais.filter((material) => {
+      const nomeOk = material.nome.toLowerCase().includes(texto);
+      const statusOk = filtroStatus === "todos" ? true : getMaterialStatus(material) === filtroStatus;
       return nomeOk && statusOk;
     });
 
-    const sorted = [...filtrada].sort((a, b) => {
+    return [...filtrada].sort((a, b) => {
       const mult = direcaoOrdem === "asc" ? 1 : -1;
       if (ordenarPor === "nome") return a.nome.localeCompare(b.nome) * mult;
       if (ordenarPor === "quantidadeKg") return (a.quantidadeKg - b.quantidadeKg) * mult;
-      if (ordenarPor === "precoBase") return (a.precoBase - b.precoBase) * mult;
-      if (ordenarPor === "valorEstoque") {
-        return (a.quantidadeKg * a.precoBase - b.quantidadeKg * b.precoBase) * mult;
-      }
+      if (ordenarPor === "precoCompraKg") return (a.precoCompraKg - b.precoCompraKg) * mult;
+      if (ordenarPor === "precoVendaKg") return (a.precoVendaKg - b.precoVendaKg) * mult;
+      if (ordenarPor === "valorVendaEstoque") return (a.valorVendaEstoque - b.valorVendaEstoque) * mult;
       return 0;
     });
-
-    return sorted;
-  }, [listaNormalizada, filtro, filtroStatus, ordenarPor, direcaoOrdem]);
+  }, [materiais, filtro, filtroStatus, ordenarPor, direcaoOrdem]);
 
   const resumo = useMemo(() => {
-    const totalKg = listaNormalizada.reduce((acc, item) => acc + item.quantidadeKg, 0);
-    const valorTotal = listaNormalizada.reduce((acc, item) => acc + item.quantidadeKg * item.precoBase, 0);
-    const estoqueBaixo = listaNormalizada.filter((item) => getStatus(item.quantidadeKg) === "baixo").length;
-    return { totalKg, valorTotal, estoqueBaixo };
-  }, [listaNormalizada]);
+    const totalKg = materiais.reduce((acc, item) => acc + item.quantidadeKg, 0);
+    const valorCusto = materiais.reduce((acc, item) => acc + item.valorCustoEstoque, 0);
+    const valorVenda = materiais.reduce((acc, item) => acc + item.valorVendaEstoque, 0);
+    const estoqueBaixo = materiais.filter((item) => getMaterialStatus(item) !== "ok").length;
+
+    return { totalKg, valorCusto, valorVenda, estoqueBaixo };
+  }, [materiais]);
 
   const totalPaginas = Math.max(1, Math.ceil(listaFiltradaOrdenada.length / itensPorPagina));
 
@@ -131,195 +138,261 @@ export default function Estoque() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div className="mx-auto max-w-7xl space-y-8">
+      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Estoque de Materiais</h1>
-          <p className="text-gray-500">Controle de peso, disponibilidade e valor armazenado</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-blue-300">Controle do patio</p>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-50">Estoque</h1>
+          <p className="page-intro mt-3">
+            Acompanhe o peso, custo, valor de venda e os pontos de alerta por material em um painel unico.
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={loadEstoque}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
-          >
+
+        <div className="flex flex-wrap gap-3">
+          <Button type="button" variant="secondary" onClick={loadEstoque} className="px-4 py-2.5">
+            <RefreshCw size={16} />
             Atualizar
-          </button>
-          <button
-            type="button"
-            onClick={() => downloadCsv(listaFiltradaOrdenada)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-          >
+          </Button>
+          <Button type="button" onClick={() => downloadCsv(listaFiltradaOrdenada)} className="px-4 py-2.5">
+            <Download size={16} />
             Exportar CSV
-          </button>
+          </Button>
         </div>
-      </div>
+      </header>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Itens Cadastrados</p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">{listaNormalizada.length}</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Peso Total</p>
-          <p className="mt-2 text-2xl font-bold text-blue-700">{formatWeight(resumo.totalKg)}</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Valor em Estoque</p>
-          <p className="mt-2 text-2xl font-bold text-green-700">{formatCurrencyBRL(resumo.valorTotal)}</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Estoque Baixo</p>
-          <p className="mt-2 text-2xl font-bold text-orange-600">{resumo.estoqueBaixo}</p>
-        </div>
-      </div>
-
-      <div className="mb-4 grid gap-3 md:grid-cols-[1fr_auto_auto]">
-        <input
-          type="text"
-          value={filtro}
-          placeholder="Pesquisar material..."
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm outline-none focus:ring-2 focus:ring-blue-500"
-          onChange={(e) => setFiltro(e.target.value)}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StockMetric label="Materiais monitorados" value={String(materiais.length)} />
+        <StockMetric label="Peso total" value={formatWeight(resumo.totalKg)} tone="info" />
+        <StockMetric label="Valor de custo" value={formatCurrencyBRL(resumo.valorCusto)} />
+        <StockMetric
+          label="Itens em alerta"
+          value={String(resumo.estoqueBaixo)}
+          tone={resumo.estoqueBaixo > 0 ? "negative" : "positive"}
         />
-        <select
-          value={filtroStatus}
-          onChange={(e) => setFiltroStatus(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700"
-        >
-          <option value="todos">Todos</option>
-          <option value="ok">Disponivel</option>
-          <option value="baixo">Estoque Baixo</option>
-        </select>
-        <select
-          value={itensPorPagina}
-          onChange={(e) => setItensPorPagina(Number(e.target.value))}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700"
-        >
-          {PAGE_SIZE_OPTIONS.map((size) => (
-            <option key={size} value={size}>
-              {size} por pagina
-            </option>
-          ))}
-        </select>
       </div>
 
       {erro && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/12 px-4 py-3 text-sm text-rose-100">
           {erro}
         </div>
       )}
 
-      <div className="grid gap-6">
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50 text-sm uppercase text-gray-600">
-                <th className="px-6 py-4 font-semibold">
-                  <button type="button" onClick={() => alterarOrdenacao("nome")} className="hover:text-gray-900">
-                    Material{labelOrdem("nome")}
-                  </button>
-                </th>
-                <th className="px-6 py-4 text-center font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => alterarOrdenacao("quantidadeKg")}
-                    className="hover:text-gray-900"
-                  >
-                    Quantidade Atual{labelOrdem("quantidadeKg")}
-                  </button>
-                </th>
-                <th className="px-6 py-4 text-center font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => alterarOrdenacao("precoBase")}
-                    className="hover:text-gray-900"
-                  >
-                    Preco/Kg Base{labelOrdem("precoBase")}
-                  </button>
-                </th>
-                <th className="px-6 py-4 text-center font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => alterarOrdenacao("valorEstoque")}
-                    className="hover:text-gray-900"
-                  >
-                    Valor em Estoque{labelOrdem("valorEstoque")}
-                  </button>
-                </th>
-                <th className="px-6 py-4 text-center font-semibold">Situacao</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {!carregando &&
-                itensPagina.map((m) => (
-                <tr key={m.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-bold text-gray-800">{m.nome}</td>
-                  <td className="px-6 py-4 text-center text-blue-600 font-semibold">
-                    {formatWeight(m.quantidadeKg)}
-                  </td>
-                  <td className="px-6 py-4 text-center text-gray-600">
-                    {formatCurrencyBRL(m.precoBase)}
-                  </td>
-                  <td className="px-6 py-4 text-center font-semibold text-gray-700">
-                    {formatCurrencyBRL(m.quantidadeKg * m.precoBase)}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    {getStatus(m.quantidadeKg) === "ok" ? (
-                      <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
-                        DISPONIVEL
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">
-                        ESTOQUE BAIXO
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {carregando && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                    Carregando dados de estoque...
-                  </td>
-                </tr>
-              )}
-              {!carregando && listaFiltradaOrdenada.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                    Nenhum material encontrado para o filtro informado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <section className="grid gap-6 xl:grid-cols-[0.95fr_2.05fr]">
+        <div className="surface-panel-strong rounded-[28px] p-6">
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Filtros e leitura</p>
+          <h2 className="mt-2 text-2xl font-bold text-slate-50">Encontre rapido o que precisa</h2>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-600">
+          <div className="mt-8 space-y-5">
+            <label className="block">
+              <span className="text-sm font-semibold text-slate-200">Pesquisar material</span>
+              <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-700/80 bg-slate-900/70 px-4 py-3">
+                <Search className="h-4 w-4 text-slate-500" />
+                <input
+                  type="text"
+                  value={filtro}
+                  placeholder="Ex.: cobre, aluminio..."
+                  className="w-full bg-transparent text-slate-100 outline-none placeholder:text-slate-500"
+                  onChange={(e) => setFiltro(e.target.value)}
+                />
+              </div>
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-semibold text-slate-200">Status do estoque</span>
+              <select
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value)}
+                className="surface-soft mt-3 w-full rounded-2xl px-4 py-3 text-slate-100 outline-none focus:border-blue-400"
+              >
+                <option value="todos">Todos</option>
+                <option value="ok">Disponivel</option>
+                <option value="baixo">Abaixo do minimo</option>
+                <option value="zerado">Sem estoque</option>
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-semibold text-slate-200">Itens por pagina</span>
+              <select
+                value={itensPorPagina}
+                onChange={(e) => setItensPorPagina(Number(e.target.value))}
+                className="surface-soft mt-3 w-full rounded-2xl px-4 py-3 text-slate-100 outline-none focus:border-blue-400"
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>
+                    {size} por pagina
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+              <div className="surface-panel rounded-2xl p-4">
+                <div className="flex items-center gap-3">
+                  <Boxes className="h-5 w-5 text-blue-300" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Valor de venda</p>
+                </div>
+                <p className="mt-4 text-2xl font-bold text-blue-300">{formatCurrencyBRL(resumo.valorVenda)}</p>
+              </div>
+
+              <div className="surface-panel rounded-2xl p-4">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-rose-400" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Atencao</p>
+                </div>
+                <p className="mt-4 text-sm text-slate-300">
+                  {resumo.estoqueBaixo > 0
+                    ? `${resumo.estoqueBaixo} materiais precisam de revisao.`
+                    : "Nenhum material em estado critico no momento."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="surface-panel-strong overflow-hidden rounded-[28px]">
+          <div className="flex flex-col gap-3 border-b border-slate-700/80 px-6 py-5 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Tabela de materiais</p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-50">Saldo, precos e situacao do estoque</h2>
+            </div>
+            <div className="rounded-full border border-slate-700 bg-slate-900/70 px-4 py-2 text-sm text-slate-400">
+              {carregando ? "Sincronizando estoque..." : `${listaFiltradaOrdenada.length} resultados`}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] text-left">
+              <thead className="table-header-row border-b border-slate-700/70">
+                <tr>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em]">
+                    <button type="button" onClick={() => alterarOrdenacao("nome")} className="transition-colors hover:text-slate-50">
+                      Material{labelOrdem("nome")}
+                    </button>
+                  </th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-[0.18em]">
+                    <button type="button" onClick={() => alterarOrdenacao("quantidadeKg")} className="transition-colors hover:text-slate-50">
+                      Quantidade{labelOrdem("quantidadeKg")}
+                    </button>
+                  </th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-[0.18em]">
+                    <button type="button" onClick={() => alterarOrdenacao("precoCompraKg")} className="transition-colors hover:text-slate-50">
+                      Compra / kg{labelOrdem("precoCompraKg")}
+                    </button>
+                  </th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-[0.18em]">
+                    <button type="button" onClick={() => alterarOrdenacao("precoVendaKg")} className="transition-colors hover:text-slate-50">
+                      Venda / kg{labelOrdem("precoVendaKg")}
+                    </button>
+                  </th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-[0.18em]">
+                    <button type="button" onClick={() => alterarOrdenacao("valorVendaEstoque")} className="transition-colors hover:text-slate-50">
+                      Valor em estoque{labelOrdem("valorVendaEstoque")}
+                    </button>
+                  </th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-[0.18em]">Margem / kg</th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-[0.18em]">Situacao</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/80">
+                {!carregando && itensPagina.map((material) => {
+                  const status = getMaterialStatus(material);
+                  const margem = getMaterialMargin(material);
+                  const barra = Math.min(100, Math.max(16, material.estoqueMinimoKg > 0
+                    ? (material.quantidadeKg / material.estoqueMinimoKg) * 100
+                    : 100));
+
+                  return (
+                    <tr key={material.id} className="table-row-hover transition-colors">
+                      <td className="px-6 py-5">
+                        <div>
+                          <p className="font-semibold text-slate-100">{material.nome}</p>
+                          <p className="mt-2 text-xs text-slate-400">Minimo: {formatWeight(material.estoqueMinimoKg)}</p>
+                          <div className="mt-3 h-1.5 w-28 overflow-hidden rounded-full bg-slate-800">
+                            <div
+                              className={`h-full rounded-full ${
+                                status === "ok" ? "bg-emerald-500" : status === "baixo" ? "bg-blue-400" : "bg-rose-500"
+                              }`}
+                              style={{ width: `${barra}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-center font-semibold text-blue-300">{formatWeight(material.quantidadeKg)}</td>
+                      <td className="px-6 py-5 text-center text-slate-300">{formatCurrencyBRL(material.precoCompraKg)}</td>
+                      <td className="px-6 py-5 text-center text-blue-300">{formatCurrencyBRL(material.precoVendaKg)}</td>
+                      <td className="px-6 py-5 text-center font-semibold text-slate-100">{formatCurrencyBRL(material.valorVendaEstoque)}</td>
+                      <td className={`px-6 py-5 text-center font-semibold ${margem >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        {formatCurrencyBRL(margem)}
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          status === "ok"
+                            ? "bg-emerald-500/12 text-emerald-300"
+                            : status === "baixo"
+                              ? "bg-blue-500/12 text-blue-200"
+                              : "bg-rose-500/12 text-rose-200"
+                        }`}>
+                          {getMaterialStatusLabel(status).toUpperCase()}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {carregando && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-16 text-center text-slate-400">
+                      Carregando dados de estoque...
+                    </td>
+                  </tr>
+                )}
+
+                {!carregando && listaFiltradaOrdenada.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-16 text-center">
+                      <div className="mx-auto max-w-sm">
+                        <ShieldCheck className="mx-auto h-10 w-10 text-slate-500" />
+                        <p className="mt-4 text-lg font-semibold text-slate-200">Nenhum material encontrado</p>
+                        <p className="mt-2 text-sm text-slate-400">
+                          Ajuste os filtros ou atualize o estoque para visualizar os materiais cadastrados.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
         <p>
           Mostrando {itensPagina.length} de {listaFiltradaOrdenada.length} resultados
         </p>
         <div className="flex items-center gap-2">
-          <button
+          <Button
             type="button"
+            variant="secondary"
             disabled={paginaSegura <= 1}
-            onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
-            className="rounded border border-gray-300 bg-white px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={() => setPaginaAtual((pagina) => Math.max(1, pagina - 1))}
+            className="px-3 py-1.5"
           >
             Anterior
-          </button>
+          </Button>
           <span>
             Pagina {paginaSegura} de {totalPaginas}
           </span>
-          <button
+          <Button
             type="button"
+            variant="secondary"
             disabled={paginaSegura >= totalPaginas}
-            onClick={() => setPaginaAtual((p) => Math.min(totalPaginas, p + 1))}
-            className="rounded border border-gray-300 bg-white px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={() => setPaginaAtual((pagina) => Math.min(totalPaginas, pagina + 1))}
+            className="px-3 py-1.5"
           >
             Proxima
-          </button>
+          </Button>
         </div>
       </div>
     </div>

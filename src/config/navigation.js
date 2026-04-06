@@ -1,24 +1,21 @@
 export const NAV_SECTIONS = [
   {
-    title: "Geral",
+    title: "Operacao",
     links: [
-      { href: "/", label: "Dashboard" },
-      { href: "/compras", label: "Nova Compra" },
-      { href: "/vendas", label: "Nova Venda" },
-      { href: "/materiais", label: "Materiais" },
-      { href: "/estoque", label: "Estoque" },
+      { href: "/", label: "Dashboard", roles: ["owner", "employee", "viewer"] },
+      { href: "/compras", label: "Nova Compra", roles: ["owner", "employee"] },
+      { href: "/vendas", label: "Nova Venda", roles: ["owner", "employee"] },
+      { href: "/materiais", label: "Materiais", roles: ["owner"] },
+      { href: "/estoque", label: "Estoque", roles: ["owner", "employee", "viewer"] },
     ],
   },
   {
     title: "Gestao",
     links: [
-      { href: "/financeiro", label: "Financeiro" },
-      { href: "/parceiros", label: "Parceiros" },
-      { href: "/auditoria", label: "Auditoria" },
+      { href: "/financeiro", label: "Financeiro", roles: ["owner"] },
+      { href: "/parceiros", label: "Parceiros", roles: ["owner"] },
+      { href: "/auditoria", label: "Auditoria", roles: ["owner"] },
+      { href: "/relatorios", label: "Relatorios", roles: ["owner"] },
     ],
-  },
-  {
-    title: "Relatorios",
-    links: [{ href: "/relatorios", label: "Total por Material" }],
   },
 ];
