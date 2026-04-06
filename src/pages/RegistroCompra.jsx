@@ -1,19 +1,35 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { CheckCircle } from "lucide-react";
+import { getMateriais } from "../services/materialService";
+import { createPurchase } from "../services/transactionService";
 
 export default function RegistroCompra() {
+  const [, setLocation] = useLocation();
   const [materiais, setMaterials] = useState([]);
   const [selecionado, setSelecionado] = useState("");
   const [valorDigitado, setValorDigitado] = useState("");
   const [unidadeEntrada, setUnidadeEntrada] = useState("kg");
   const [precoKg, setPrecoKg] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/materiais")
-      .then((res) => res.json())
-      .then(setMaterials)
-      .catch((err) => console.error("Erro ao carregar materiais:", err));
+    async function loadMateriais() {
+      try {
+        setErro("");
+        const data = await getMateriais();
+        setMaterials(Array.isArray(data) ? data : []);
+      } catch (error) {
+        setErro(error.message);
+      } finally {
+        setCarregando(false);
+      }
+    }
+
+    loadMateriais();
   }, []);
 
   const handleMaterialChange = (id) => {
@@ -33,28 +49,23 @@ export default function RegistroCompra() {
 
   const handleFinalizarCompra = async () => {
     if (!selecionado || !valorDigitado) {
-      alert("Por favor, preencha todos os campos.");
+      setErro("Preencha o material e a quantidade para registrar a compra.");
       return;
     }
 
     try {
-      const response = await fetch("http://localhost:3000/api/purchases", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          materialId: parseInt(selecionado),
-          weightKg: pesoFinalKg,
-          pricePerKg: precoKg,
-        }),
+      setSalvando(true);
+      setErro("");
+      await createPurchase({
+        materialId: parseInt(selecionado, 10),
+        weightKg: pesoFinalKg,
+        pricePerKg: precoKg,
       });
-
-      if (response.ok) setFinished(true);
-      else {
-        const errorData = await response.json();
-        alert("Erro: " + errorData.error);
-      }
+      setFinished(true);
     } catch (error) {
-      alert("Erro de conexão com o servidor.");
+      setErro(error.message);
+    } finally {
+      setSalvando(false);
     }
   };
 
@@ -63,21 +74,47 @@ export default function RegistroCompra() {
       <div className="p-10 text-center space-y-6 max-w-2xl mx-auto mt-20 bg-white rounded-xl shadow-lg border">
         <CheckCircle className="w-20 h-20 text-green-600 mx-auto" />
         <h2 className="text-3xl font-bold text-gray-800">Compra Registrada!</h2>
+        <p className="text-sm text-gray-500">A operacao foi concluida e o estoque ja pode ser atualizado.</p>
         <div className="flex justify-center gap-4 mt-8">
-          <button onClick={() => window.location.reload()} className="px-6 py-3 bg-blue-700 text-white rounded-lg font-bold">Nova Compra</button>
-          <button onClick={() => window.location.href = "/"} className="px-6 py-3 border rounded-lg font-bold text-gray-700">Início</button>
+          <button
+            type="button"
+            onClick={() => {
+              setFinished(false);
+              setSelecionado("");
+              setValorDigitado("");
+              setUnidadeEntrada("kg");
+              setPrecoKg(0);
+            }}
+            className="px-6 py-3 bg-blue-700 text-white rounded-lg font-bold"
+          >
+            Nova Compra
+          </button>
+          <button type="button" onClick={() => setLocation("/")} className="px-6 py-3 border rounded-lg font-bold text-gray-700">
+            Inicio
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="mx-auto max-w-2xl space-y-6">
       <h1 className="text-2xl font-bold mb-6">Nova Compra</h1>
       <div className="bg-white p-6 rounded-xl shadow-lg border space-y-6">
+        {erro && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {erro}
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-1">1. Selecione o Material</label>
-          <select className="w-full p-3 border rounded" value={selecionado} onChange={(e) => handleMaterialChange(e.target.value)}>
+          <select
+            className="w-full p-3 border rounded"
+            value={selecionado}
+            onChange={(e) => handleMaterialChange(e.target.value)}
+            disabled={carregando || salvando}
+          >
             <option value="">Escolha...</option>
             {materiais.map(m => <option key={m.id_material} value={m.id_material}>{m.nome}</option>)}
           </select>
@@ -85,11 +122,11 @@ export default function RegistroCompra() {
         <div className="flex gap-4">
           <div className="flex-1">
             <label className="block text-sm font-bold text-gray-700 mb-1">2. Quantidade</label>
-            <input type="number" className="w-full p-3 border rounded" value={valorDigitado} onChange={(e) => setValorDigitado(e.target.value)} placeholder="0.00" />
+            <input type="number" className="w-full p-3 border rounded" value={valorDigitado} onChange={(e) => setValorDigitado(e.target.value)} placeholder="0.00" disabled={salvando} />
           </div>
           <div className="w-32">
             <label className="block text-sm font-bold text-gray-700 mb-1">Unidade</label>
-            <select className="w-full p-3 border rounded bg-gray-50 font-bold" value={unidadeEntrada} onChange={(e) => setUnidadeEntrada(e.target.value)}>
+            <select className="w-full p-3 border rounded bg-gray-50 font-bold" value={unidadeEntrada} onChange={(e) => setUnidadeEntrada(e.target.value)} disabled={salvando}>
               <option value="kg">kg</option>
               <option value="t">t</option>
               <option value="g">g</option>
@@ -102,8 +139,13 @@ export default function RegistroCompra() {
             <span>R$ {totalFinanceiro.toFixed(2)}</span>
           </div>
         </div>
-        <button className="w-full bg-blue-700 text-white py-4 rounded-lg font-bold hover:bg-blue-800 transition-colors" onClick={handleFinalizarCompra}>
-          FINALIZAR COMPRA
+        {carregando && <p className="text-sm text-gray-500">Carregando materiais...</p>}
+        <button
+          className="w-full bg-blue-700 text-white py-4 rounded-lg font-bold hover:bg-blue-800 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+          onClick={handleFinalizarCompra}
+          disabled={carregando || salvando}
+        >
+          {salvando ? "Salvando..." : "FINALIZAR COMPRA"}
         </button>
       </div>
     </div>

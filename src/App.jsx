@@ -6,23 +6,31 @@ import Materiais from "./pages/Materiais";
 import NotFound from "./pages/NotFound";
 import RegistroCompra from "./pages/RegistroCompra";
 import NewSale from "./pages/NewSale";
+import Estoque from "./pages/Estoque";
+import GerenciamentoFinanceiro from "./pages/GerenciamentoFinanceiro";
+import Parceiros from "./pages/Parceiros";
+import Auditoria from "./pages/Auditoria";
+
+const appRoutes = [
+  { path: "/", component: Dashboard },
+  { path: "/compras", component: RegistroCompra },
+  { path: "/vendas", component: NewSale },
+  { path: "/materiais", component: Materiais },
+  { path: "/estoque", component: Estoque },
+  { path: "/financeiro", component: GerenciamentoFinanceiro },
+  { path: "/parceiros", component: Parceiros },
+  { path: "/auditoria", component: Auditoria },
+  { path: "/relatorios", component: RelatorioMaterial },
+];
 
 export default function App() {
   return (
     <AppLayout>
       <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/relatorios" component={RelatorioMaterial} />
-        <Route path="/materiais" component={Materiais} />
-        
-        {/* MOVA A ROTA DE COMPRAS PARA CIMA DO NOTFOUND */}
-        <Route path="/compras" component={RegistroCompra} />
-        
-        <Route path="/vendas" component={NewSale} />
-        
-        {/* O NotFound DEVE ser sempre o último da lista */}
+        {appRoutes.map((route) => (
+          <Route key={route.path} path={route.path} component={route.component} />
+        ))}
         <Route component={NotFound} />
-        
       </Switch>
     </AppLayout>
   );

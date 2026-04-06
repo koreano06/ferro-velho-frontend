@@ -1,16 +1,18 @@
 import { Link, useRoute } from "wouter";
+import { X } from "lucide-react";
+import { NAV_SECTIONS } from "../config/navigation";
 
-// Componente customizado para gerenciar o estado ativo dos links
-function NavLink({ href, children }) {
+function NavLink({ href, children, onNavigate }) {
   const [isActive] = useRoute(href);
-  
+
   return (
-    <Link 
-      href={href} 
-      className={`block rounded-md px-3 py-2 text-sm font-medium transition-all ${
+    <Link
+      href={href}
+      onClick={onNavigate}
+      className={`block rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
         isActive 
-          ? "bg-blue-600 text-white shadow-md" 
-          : "text-gray-700 hover:bg-gray-200"
+          ? "bg-blue-600 text-white shadow-sm"
+          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
       }`}
     >
       {children}
@@ -18,42 +20,63 @@ function NavLink({ href, children }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onClose }) {
   return (
-    <aside className="w-64 bg-white border-r min-h-screen p-4 flex flex-col">
-      <h1 className="mb-8 text-xl font-bold text-blue-600 tracking-tight">
-        F_VelhoGomes
-      </h1>
+    <>
+      <div
+        aria-hidden={!mobileOpen}
+        className={`fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-sm transition-opacity md:hidden ${
+          mobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={onClose}
+      />
 
-      <nav className="space-y-6">
-        {/* Seção Geral */}
-        <div>
-          <p className="mb-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">
-            Geral
-          </p>
-          <div className="space-y-1">
-            <NavLink href="/">Dashboard</NavLink>
-            <NavLink href="/compras">Nova Compra</NavLink>
-            <NavLink href="/vendas">Nova Venda</NavLink>
-            <NavLink href="/materiais">Materiais</NavLink>
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-white/95 p-4 shadow-xl transition-transform md:static md:min-h-screen md:w-64 md:translate-x-0 md:shadow-none ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="mb-8 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+              Ferro Velho
+            </p>
+            <h1 className="mt-1 text-xl font-bold tracking-tight text-blue-600">
+              F_VelhoGomes
+            </h1>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 md:hidden"
+            aria-label="Fechar menu"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        {/* Seção de Relatórios */}
-        <div>
-          <p className="mb-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">
-            Relatórios
-          </p>
-          <div className="space-y-1">
-            <NavLink href="/relatorios">Total por Material</NavLink>
-          </div>
-        </div>
-      </nav>
+        <nav className="space-y-6">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.title}>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                {section.title}
+              </p>
+              <div className="space-y-1">
+                {section.links.map((link) => (
+                  <NavLink key={link.href} href={link.href} onNavigate={onClose}>
+                    {link.label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
 
-      {/* Rodapé do Sidebar (opcional) */}
-      <div className="mt-auto pt-6 border-t border-gray-100 text-[10px] text-gray-400 text-center">
-        v1.0.0 - Sistema de Gestão
-      </div>
-    </aside>
+        <div className="mt-auto rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+          <p className="font-semibold text-slate-700">Sistema de Gestao</p>
+          <p className="mt-1">Base pronta para compras, vendas, estoque e financeiro.</p>
+        </div>
+      </aside>
+    </>
   );
 }
