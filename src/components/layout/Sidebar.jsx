@@ -1,6 +1,6 @@
 import { Link, useRoute } from "wouter";
 import { X } from "lucide-react";
-import { NAV_SECTIONS } from "../config/navigation";
+import { NAV_SECTIONS } from "../../config/navigation";
 
 function NavLink({ href, children, onNavigate }) {
   const [isActive] = useRoute(href);
@@ -37,14 +37,19 @@ export default function Sidebar({ mobileOpen = false, onClose }) {
         }`}
       >
         <div className="mb-8 flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-              Ferro Velho
-            </p>
-            <h1 className="mt-1 text-xl font-bold tracking-tight text-blue-600">
-              F_VelhoGomes
-            </h1>
-          </div>
+          <Link href="/" onClick={onClose} className="block min-w-0 flex-1">
+            <div className="brand-shell rounded-3xl border border-slate-200 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="brand-mark flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl">
+                  <span className="brand-mark__label">FV</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="brand-kicker">Ferro Velho</p>
+                  <h1 className="brand-title">VelhoGomes</h1>
+                </div>
+              </div>
+            </div>
+          </Link>
           <button
             type="button"
             onClick={onClose}

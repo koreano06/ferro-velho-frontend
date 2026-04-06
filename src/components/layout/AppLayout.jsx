@@ -1,8 +1,8 @@
 import { Menu } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import Sidebar from "../components/Sidebar";
-import { NAV_SECTIONS } from "../config/navigation";
+import Sidebar from "./Sidebar";
+import { NAV_SECTIONS } from "../../config/navigation";
 
 export default function AppLayout({ children }) {
   const [location] = useLocation();

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function RelatorioMaterial() {
+export default function Relatorios() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [resultados, setResultados] = useState([]);

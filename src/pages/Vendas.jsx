@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Printer, CheckCircle, ArrowLeft, Scale } from "lucide-react";
 import { getMateriais } from "../services/materialService";
-import { createSale } from "../services/transactionService";
+import { createVenda } from "../services/vendaService";
 
-export default function NewSale() {
+export default function Vendas() {
   const [, setLocation] = useLocation();
 
   const [materials, setMaterials] = useState([]);
@@ -66,7 +66,7 @@ export default function NewSale() {
     try {
       setSalvando(true);
       setErro("");
-      await createSale(dadosParaEnviar);
+      await createVenda(dadosParaEnviar);
       setFinished(true);
     } catch (error) {
       setErro(error.message);

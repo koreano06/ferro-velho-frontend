@@ -1,11 +1,11 @@
 import { Switch, Route } from "wouter";
-import AppLayout from "./layouts/AppLayout";
+import AppLayout from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
-import RelatorioMaterial from "./pages/RelatorioMaterial";
+import Relatorios from "./pages/Relatorios";
 import Materiais from "./pages/Materiais";
 import NotFound from "./pages/NotFound";
-import RegistroCompra from "./pages/RegistroCompra";
-import NewSale from "./pages/NewSale";
+import Compras from "./pages/Compras";
+import Vendas from "./pages/Vendas";
 import Estoque from "./pages/Estoque";
 import GerenciamentoFinanceiro from "./pages/GerenciamentoFinanceiro";
 import Parceiros from "./pages/Parceiros";
@@ -13,14 +13,14 @@ import Auditoria from "./pages/Auditoria";
 
 const appRoutes = [
   { path: "/", component: Dashboard },
-  { path: "/compras", component: RegistroCompra },
-  { path: "/vendas", component: NewSale },
+  { path: "/compras", component: Compras },
+  { path: "/vendas", component: Vendas },
   { path: "/materiais", component: Materiais },
   { path: "/estoque", component: Estoque },
   { path: "/financeiro", component: GerenciamentoFinanceiro },
   { path: "/parceiros", component: Parceiros },
   { path: "/auditoria", component: Auditoria },
-  { path: "/relatorios", component: RelatorioMaterial },
+  { path: "/relatorios", component: Relatorios },
 ];
 
 export default function App() {

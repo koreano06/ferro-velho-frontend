@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Pencil, Trash2, Plus, X } from "lucide-react";
+import Button from "../components/ui/Button";
 import {
   createMaterial,
   deleteMaterial,
@@ -119,10 +120,10 @@ export default function Materiais() {
             required 
           />
         </div>
-        <button type="submit" disabled={salvando} className={`flex items-center justify-center gap-2 rounded-lg px-6 py-2 font-bold text-white disabled:cursor-not-allowed disabled:opacity-70 ${editando ? 'bg-amber-600' : 'bg-green-600'}`}>
+        <Button type="submit" disabled={salvando} variant={editando ? "secondary" : "primary"} className={`flex items-center justify-center gap-2 px-6 ${editando ? "!border-amber-600 !bg-amber-600 !text-white hover:!bg-amber-700" : "!bg-green-600 hover:!bg-green-700"}`}>
           {editando ? <Pencil size={18} /> : <Plus size={18} />}
           {salvando ? "Salvando..." : editando ? "Atualizar" : "Cadastrar"}
-        </button>
+        </Button>
         {editando && (
           <button type="button" onClick={() => { setEditando(null); setNome(""); setPrecoKg(""); setFeedback(""); }} className="bg-gray-100 p-2 rounded-lg" disabled={salvando}>
             <X size={20} />

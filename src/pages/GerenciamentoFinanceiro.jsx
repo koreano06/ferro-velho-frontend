@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import KpiCard from "../components/KpiCard";
+import Card from "../components/ui/Card";
 import { formatCurrencyBRL } from "../utils/formatters";
 import { getFinanceSummary } from "../services/managementService";
 
@@ -52,22 +52,22 @@ export default function GerenciamentoFinanceiro() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
+        <Card
           title="Contas a Pagar"
           tone="negative"
           value={formatCurrencyBRL(dados.cards.contas_pagar)}
         />
-        <KpiCard
+        <Card
           title="Contas a Receber"
           tone="positive"
           value={formatCurrencyBRL(dados.cards.contas_receber)}
         />
-        <KpiCard
+        <Card
           title="Caixa Disponivel"
           tone="info"
           value={formatCurrencyBRL(dados.cards.caixa_disponivel)}
         />
-        <KpiCard
+        <Card
           title="Inadimplencia"
           tone={Number(dados.cards.inadimplencia) > 0 ? "negative" : "neutral"}
           value={formatCurrencyBRL(dados.cards.inadimplencia)}

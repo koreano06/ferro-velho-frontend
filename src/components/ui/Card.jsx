@@ -1,4 +1,4 @@
-export default function KpiCard({ title, value, tone = "neutral", subtitle }) {
+export default function Card({ title, value, tone = "neutral", subtitle }) {
   const toneClass = {
     positive: "text-green-600",
     negative: "text-red-600",

@@ -1,4 +1,4 @@
-import { requestJson } from "./api";
+import { requestJson } from "../config/api";
 
 export function getMateriais() {
   return requestJson("/materiais");

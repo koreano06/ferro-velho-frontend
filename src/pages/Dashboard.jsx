@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import KpiCard from "../components/KpiCard";
+import Card from "../components/ui/Card";
 import { formatCurrencyBRL } from "../utils/formatters";
 import { getManagementOverview } from "../services/managementService";
 
@@ -46,19 +46,19 @@ export default function Dashboard() {
       )}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <KpiCard title="Compras (Mes)" value={formatCurrencyBRL(stats.compras_mes)} tone="negative" />
-        <KpiCard title="Vendas (Mes)" value={formatCurrencyBRL(stats.vendas_mes)} tone="positive" />
-        <KpiCard
+        <Card title="Compras (Mes)" value={formatCurrencyBRL(stats.compras_mes)} tone="negative" />
+        <Card title="Vendas (Mes)" value={formatCurrencyBRL(stats.vendas_mes)} tone="positive" />
+        <Card
           title="Lucro (Mes)"
           value={formatCurrencyBRL(stats.lucro_mes)}
           tone={Number(stats.lucro_mes) >= 0 ? "positive" : "negative"}
         />
-        <KpiCard
+        <Card
           title="Giro de Estoque"
           value={`${Number(stats.giro_estoque_dias).toFixed(1)} dias`}
           tone="info"
         />
-        <KpiCard title="Materiais Parados" value={String(stats.materiais_parados)} tone="neutral" />
+        <Card title="Materiais Parados" value={String(stats.materiais_parados)} tone="neutral" />
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white shadow-sm">

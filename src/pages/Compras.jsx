@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { CheckCircle } from "lucide-react";
 import { getMateriais } from "../services/materialService";
-import { createPurchase } from "../services/transactionService";
+import { createCompra } from "../services/compraService";
 
-export default function RegistroCompra() {
+export default function Compras() {
   const [, setLocation] = useLocation();
   const [materiais, setMaterials] = useState([]);
   const [selecionado, setSelecionado] = useState("");
@@ -56,7 +56,7 @@ export default function RegistroCompra() {
     try {
       setSalvando(true);
       setErro("");
-      await createPurchase({
+      await createCompra({
         materialId: parseInt(selecionado, 10),
         weightKg: pesoFinalKg,
         pricePerKg: precoKg,
